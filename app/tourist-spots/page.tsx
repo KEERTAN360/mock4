@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Eye,
   Zap,
+  Shield,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -449,33 +450,41 @@ export default function TouristSpotsPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex items-center gap-3 p-4 pt-6">
-        <div className="flex-1">
-          <h1 className="text-xl font-semibold text-foreground text-center">Tourist Spots</h1>
+      <div className="flex items-center justify-between p-4 pt-6">
+        <h1 className="text-xl font-semibold text-foreground">Tourist Spots</h1>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 shadow-lg h-10 w-10"
+            onClick={() => router.push("/geofencing-alerts")}
+          >
+            <AlertTriangle className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 shadow-lg h-10 w-10"
+            onClick={() => router.push("/saved-places")}
+          >
+            <Bookmark className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-primary-foreground bg-blue-500 rounded-xl hover:bg-blue-600 shadow-lg h-10 w-10"
+            onClick={() => router.push("/sos")}
+          >
+            <Shield className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-foreground bg-card rounded-xl hover:bg-muted border border-border h-10 w-10"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 shadow-lg"
-          onClick={() => router.push("/geofencing-alerts")}
-        >
-          <AlertTriangle className="h-6 w-6" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 shadow-lg"
-          onClick={() => router.push("/saved-places")}
-        >
-          <Bookmark className="h-6 w-6" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-foreground bg-card rounded-xl hover:bg-muted border border-border"
-        >
-          <Menu className="h-6 w-6" />
-        </Button>
       </div>
 
       <div className="px-4 pb-4">

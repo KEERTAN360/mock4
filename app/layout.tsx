@@ -2,7 +2,6 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import FloatingSafetyMonitor from "@/components/floating-safety-monitor"
 import { LanguageProvider } from "@/contexts/language-context"
 import { Suspense } from "react"
 import "./globals.css"
@@ -29,7 +28,6 @@ export default function RootLayout({
         <LanguageProvider>
           <Suspense fallback={null}>
             {children}
-            <FloatingSafetyMonitor isActive={true} />
             <Analytics />
           </Suspense>
         </LanguageProvider>

@@ -1,6 +1,7 @@
 "use client"
 import { Cloud, Sun, CloudRain, Wind, CloudDrizzle } from "lucide-react"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 interface WeatherData {
   location: string
@@ -17,6 +18,7 @@ interface WeatherData {
 }
 
 export default function WeatherWidget() {
+  const router = useRouter()
   const [currentWeather, setCurrentWeather] = useState<WeatherData>({
     location: "Bangalore",
     temperature: 23,
@@ -112,7 +114,7 @@ export default function WeatherWidget() {
   }, [])
 
   const getWeatherIcon = (iconType: string, size: "sm" | "lg" = "lg") => {
-    const sizeClass = size === "sm" ? "h-6 w-6" : "h-8 w-8"
+    const sizeClass = size === "sm" ? "h-4 w-4" : "h-6 w-6"
     switch (iconType) {
       case "sun":
         return <Sun className={`${sizeClass} text-orange-500`} />
@@ -218,56 +220,43 @@ export default function WeatherWidget() {
 
   return (
     <div
-      className={`weather-widget relative overflow-hidden rounded-lg shadow-lg transition-all duration-500 ${
+      className={`weather-widget relative overflow-hidden rounded-lg shadow-lg transition-all duration-500 cursor-pointer hover:scale-105 ${
         isAnimating ? "scale-95 opacity-70" : "scale-100 opacity-100"
       }`}
       style={{
         background: `${theme.background} !important`,
-        minHeight: "280px",
+        minHeight: "128px",
       }}
+      onClick={() => router.push("/weather")}
     >
       {renderBackgroundElements()}
 
-      <div className="relative z-10 p-6">
-        <div className="flex items-start justify-between mb-6">
+      <div className="relative z-10 p-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="text-5xl font-light mb-1" style={{ color: `${theme.textColor} !important` }}>
+            <div className="text-3xl font-light mb-1" style={{ color: `${theme.textColor} !important` }}>
               {currentWeather.temperature}°
             </div>
-            <div className="text-xl font-medium" style={{ color: `${theme.textColor} !important` }}>
+            <div className="text-sm font-medium" style={{ color: `${theme.textColor} !important` }}>
               {currentWeather.condition}
             </div>
-            <div className="text-lg" style={{ color: `${theme.accentColor} !important` }}>
+            <div className="text-xs" style={{ color: `${theme.accentColor} !important` }}>
               {currentWeather.location}
             </div>
           </div>
           <div className="transition-transform duration-300 hover:scale-110">{getWeatherIcon(currentWeather.icon)}</div>
         </div>
 
-        <div className="relative mb-6">
-          <svg className="w-full h-8" viewBox="0 0 300 32" fill="none">
-            <path
-              d="M0 16 Q75 8 150 12 T300 16"
-              stroke={theme.accentColor}
-              strokeWidth="2"
-              fill="none"
-              strokeDasharray="5,5"
-              opacity="0.6"
-            />
-            <circle cx="20" cy="16" r="4" fill={theme.textColor} />
-          </svg>
-        </div>
-
         <div
-          className="flex justify-between items-center rounded-lg p-3 mb-4"
+          className="flex justify-between items-center rounded-lg p-2 mb-2"
           style={{
             backgroundColor: `${theme.accentColor}20`,
           }}
         >
-          {currentWeather.hourlyForecast.map((hour, index) => (
-            <div key={index} className="flex flex-col items-center gap-2">
+          {currentWeather.hourlyForecast.slice(0, 3).map((hour, index) => (
+            <div key={index} className="flex flex-col items-center gap-1">
               {getWeatherIcon(hour.icon, "sm")}
-              <div className="text-sm font-medium" style={{ color: `${theme.textColor} !important` }}>
+              <div className="text-xs font-medium" style={{ color: `${theme.textColor} !important` }}>
                 {hour.time}
               </div>
             </div>
@@ -275,7 +264,7 @@ export default function WeatherWidget() {
         </div>
 
         <div
-          className="flex items-center justify-center gap-4 text-xs"
+          className="flex items-center justify-center gap-3 text-xs"
           style={{ color: `${theme.accentColor} !important` }}
         >
           <span>💧 {currentWeather.humidity}%</span>

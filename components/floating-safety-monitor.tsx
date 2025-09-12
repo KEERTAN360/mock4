@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Shield, MapPin, AlertTriangle, Phone, Flag, X, Navigation, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 
 interface FloatingSafetyMonitorProps {
   isActive?: boolean
+  onClose?: () => void
 }
 
 interface LocationData {
@@ -19,13 +20,19 @@ interface LocationData {
   lastUpdated: string
 }
 
-export default function FloatingSafetyMonitor({ isActive = true }: FloatingSafetyMonitorProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export default function FloatingSafetyMonitor({ isActive = true, onClose }: FloatingSafetyMonitorProps) {
+  const [isOpen, setIsOpen] = useState(true) // Always open when component is rendered
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [lastActivity, setLastActivity] = useState(Date.now())
   const [movementStatus, setMovementStatus] = useState<"stationary" | "walking" | "running" | "distress">("stationary")
+  
+  // Drag and drop state
+  const [position, setPosition] = useState({ x: 16, y: 16 }) // Default top-right position
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const buttonRef = useRef<HTMLDivElement>(null)
 
   // Mock location data based on coordinates
   const getLocationData = (lat: number, lng: number): LocationData => {
@@ -204,33 +211,103 @@ export default function FloatingSafetyMonitor({ isActive = true }: FloatingSafet
     }
   }, [])
 
+  // Drag and drop handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isOpen) return // Don't drag when panel is open
+    
+    setIsDragging(true)
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (rect) {
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      })
+    }
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return
+
+    const newX = e.clientX - dragOffset.x
+    const newY = e.clientY - dragOffset.y
+
+    // Keep button within viewport bounds
+    const maxX = window.innerWidth - 56 // Button width (40px) + padding
+    const maxY = window.innerHeight - 56 // Button height (40px) + padding
+
+    setPosition({
+      x: Math.max(8, Math.min(newX, maxX)),
+      y: Math.max(8, Math.min(newY, maxY))
+    })
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isOpen) return
+    
+    setIsDragging(true)
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (rect) {
+      const touch = e.touches[0]
+      setDragOffset({
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      })
+    }
+  }
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDragging) return
+
+    const touch = e.touches[0]
+    const newX = touch.clientX - dragOffset.x
+    const newY = touch.clientY - dragOffset.y
+
+    const maxX = window.innerWidth - 56
+    const maxY = window.innerHeight - 56
+
+    setPosition({
+      x: Math.max(8, Math.min(newX, maxX)),
+      y: Math.max(8, Math.min(newY, maxY))
+    })
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+  }
+
+  // Add global event listeners for drag
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleTouchEnd)
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [isDragging, dragOffset])
+
   if (!isActive) return null
 
   return (
-    <>
-      <div className="fixed top-4 left-4 z-50">
-        <Button
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-white/20"
-          style={{
-            boxShadow: "0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
-          }}
-          title="Safety Monitor" // Added tooltip to show full name on hover
-        >
-          <Shield className="h-4 w-4 text-white" />
-        </Button>
-      </div>
-
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start justify-start p-4 z-40">
-          <Card
-            className="w-full max-w-sm mt-16 ml-4 bg-white/95 backdrop-blur-md border-0 overflow-hidden"
-            style={{
-              boxShadow:
-                "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
-              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)",
-            }}
-          >
+    <Card
+      className="w-full bg-white/95 backdrop-blur-md border-0 overflow-hidden"
+      style={{
+        boxShadow:
+          "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+        background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)",
+      }}
+    >
             <div
               className="p-4 text-white relative overflow-hidden"
               style={{
@@ -247,7 +324,7 @@ export default function FloatingSafetyMonitor({ isActive = true }: FloatingSafet
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsOpen(false)}
+                  onClick={onClose}
                   className="text-white hover:bg-white/20 h-8 w-8 p-0"
                 >
                   <X className="h-4 w-4" />
@@ -417,9 +494,6 @@ export default function FloatingSafetyMonitor({ isActive = true }: FloatingSafet
                 </div>
               )}
             </div>
-          </Card>
-        </div>
-      )}
-    </>
+    </Card>
   )
 }

@@ -13,6 +13,8 @@ import {
   ArrowLeft,
   HelpCircle,
   LogOut,
+  Calendar,
+  Shield,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,6 +23,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import WeatherWidget from "@/components/weather-widget"
 import FloatingDropdown from "@/components/floating-dropdown"
+import FloatingSafetyMonitor from "@/components/floating-safety-monitor"
 import AIHelper from "@/components/ai-helper"
 import { useLanguage } from "@/contexts/language-context"
 
@@ -28,6 +31,7 @@ export default function HomePage() {
   const router = useRouter()
   const [showSidePanel, setShowSidePanel] = useState(false)
   const [showFloatingDropdown, setShowFloatingDropdown] = useState(false)
+  const [showSafetyMonitor, setShowSafetyMonitor] = useState(false)
   const [username, setUsername] = useState("")
   const [age, setAge] = useState("")
   const [travelType, setTravelType] = useState("")
@@ -177,14 +181,24 @@ export default function HomePage() {
             <h1 className="text-xl font-bold text-foreground">{t("exploreKarnataka")}</h1>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-foreground bg-card border border-border rounded-xl hover:bg-muted shadow-md"
-          onClick={() => setShowFloatingDropdown(true)}
-        >
-          <Menu className="h-6 w-6" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-primary-foreground bg-blue-500 rounded-xl hover:bg-blue-600 shadow-lg h-10 w-10"
+            onClick={() => setShowSafetyMonitor(true)}
+          >
+            <Shield className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-foreground bg-card border border-border rounded-xl hover:bg-muted shadow-md h-10 w-10"
+            onClick={() => setShowFloatingDropdown(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {showSidePanel && (
@@ -244,6 +258,23 @@ export default function HomePage() {
         onLogout={handleLogout}
       />
 
+      {showSafetyMonitor && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start justify-start p-4 z-40"
+          onClick={() => setShowSafetyMonitor(false)}
+        >
+          <div 
+            className="w-full max-w-sm mt-16 ml-4 bg-white/95 backdrop-blur-md border-0 overflow-hidden rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FloatingSafetyMonitor 
+              isActive={true} 
+              onClose={() => setShowSafetyMonitor(false)}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="pb-4 px-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
@@ -289,6 +320,21 @@ export default function HomePage() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mb-8 px-4">
+          <Button
+            onClick={() => router.push("/itinerary")}
+            className="w-full p-6 h-auto bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-3xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 shadow-lg"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <Calendar className="h-6 w-6" />
+              <div className="text-center">
+                <h2 className="text-lg font-semibold">Plan Your Itinerary</h2>
+                <p className="text-sm text-white/80">Create and manage your travel plans</p>
+              </div>
+            </div>
+          </Button>
         </div>
 
         <div className="mb-8 px-4">
