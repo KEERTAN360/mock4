@@ -19,97 +19,90 @@ interface WeatherData {
 
 export default function WeatherWidget() {
   const router = useRouter()
-  const [currentWeather, setCurrentWeather] = useState<WeatherData>({
-    location: "Bangalore",
-    temperature: 23,
-    condition: "Cloudy",
-    humidity: 65,
-    windSpeed: 12,
-    icon: "cloud",
-    hourlyForecast: [
-      { time: "Now", temp: 23, icon: "cloud" },
-      { time: "01:00", temp: 22, icon: "cloud" },
-      { time: "03:00", temp: 21, icon: "cloud" },
-      { time: "05:00", temp: 20, icon: "cloud" },
-      { time: "07:00", temp: 22, icon: "sun" },
-    ],
-  })
+  const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null)
 
   const [isAnimating, setIsAnimating] = useState(false)
 
   useEffect(() => {
-    const weatherOptions = [
-      {
-        location: "Bangalore",
-        temperature: 23,
-        condition: "Cloudy",
-        humidity: 65,
-        windSpeed: 12,
-        icon: "cloud" as const,
-        hourlyForecast: [
-          { time: "Now", temp: 23, icon: "cloud" as const },
-          { time: "01:00", temp: 22, icon: "cloud" as const },
-          { time: "03:00", temp: 21, icon: "cloud" as const },
-          { time: "05:00", temp: 20, icon: "cloud" as const },
-          { time: "07:00", temp: 22, icon: "sun" as const },
-        ],
-      },
-      {
-        location: "Mysore",
-        temperature: 28,
-        condition: "Sunny",
-        humidity: 45,
-        windSpeed: 8,
-        icon: "sun" as const,
-        hourlyForecast: [
-          { time: "Now", temp: 28, icon: "sun" as const },
-          { time: "01:00", temp: 29, icon: "sun" as const },
-          { time: "03:00", temp: 30, icon: "sun" as const },
-          { time: "05:00", temp: 31, icon: "sun" as const },
-          { time: "07:00", temp: 32, icon: "sun" as const },
-        ],
-      },
-      {
-        location: "Coorg",
-        temperature: 19,
-        condition: "Light Rain",
-        humidity: 85,
-        windSpeed: 15,
-        icon: "rain" as const,
-        hourlyForecast: [
-          { time: "Now", temp: 19, icon: "rain" as const },
-          { time: "01:00", temp: 18, icon: "rain" as const },
-          { time: "03:00", temp: 17, icon: "drizzle" as const },
-          { time: "05:00", temp: 18, icon: "drizzle" as const },
-          { time: "07:00", temp: 20, icon: "cloud" as const },
-        ],
-      },
-      {
-        location: "Hampi",
-        temperature: 32,
-        condition: "Clear Sky",
-        humidity: 35,
-        windSpeed: 6,
-        icon: "sun" as const,
-        hourlyForecast: [
-          { time: "Now", temp: 32, icon: "sun" as const },
-          { time: "01:00", temp: 33, icon: "sun" as const },
-          { time: "03:00", temp: 34, icon: "sun" as const },
-          { time: "05:00", temp: 35, icon: "sun" as const },
-          { time: "07:00", temp: 36, icon: "sun" as const },
-        ],
-      },
-    ]
-
+    const fetchWeather = async (query: string) => {
+      try {
+        const res = await fetch(query + `&t=${Date.now()}`, { cache: "no-store" })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.error || "Failed to load weather")
+        const icon = (() => {
+          const main = data?.current?.weather?.[0]?.main?.toLowerCase() || "cloud"
+          if (main.includes("rain")) return "rain"
+          if (main.includes("drizzle")) return "drizzle"
+          if (main.includes("clear")) return "sun"
+          return "cloud"
+        })() as WeatherData["icon"]
+        const hourly = (data?.hourly || []).slice(0, 5).map((h: any, i: number) => {
+          const dt = new Date((h.dt || 0) * 1000)
+          const label = i === 0 ? "Now" : dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          const hIcon = (() => {
+            const m = h?.weather?.[0]?.main?.toLowerCase() || "cloud"
+            if (m.includes("rain")) return "rain"
+            if (m.includes("drizzle")) return "drizzle"
+            if (m.includes("clear")) return "sun"
+            return "cloud"
+          })() as WeatherData["icon"]
+          return { time: label, temp: Math.round(Number(h.temp)), icon: hIcon }
+        })
+        setCurrentWeather({
+          location: "Bengaluru",
+          temperature: Math.round(Number(data?.current?.temp ?? 0)),
+          condition: data?.current?.weather?.[0]?.description || "--",
+          humidity: Math.round(Number(data?.current?.humidity ?? 0)),
+          windSpeed: Math.round(Number(data?.current?.wind_speed ?? 0)),
+          icon,
+          hourlyForecast: hourly,
+        })
+      } catch (e) {
+        // keep UI and try fallback to city name
+        if (query.indexOf("lat=") > -1) {
+          try {
+            const res2 = await fetch(`/api/weather?q=Bengaluru`, { cache: "no-store" })
+            const data2 = await res2.json()
+            if (res2.ok) {
+              const main = data2?.current?.weather?.[0]?.main?.toLowerCase() || "cloud"
+              const icon = main.includes("rain") ? "rain" : main.includes("drizzle") ? "drizzle" : main.includes("clear") ? "sun" : "cloud"
+              const hourly = (data2?.hourly || []).slice(0, 5).map((h: any, i: number) => {
+                const dt = new Date((h.dt || 0) * 1000)
+                const label = i === 0 ? "Now" : dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                const hMain = h?.weather?.[0]?.main?.toLowerCase() || "cloud"
+                const hIcon = hMain.includes("rain") ? "rain" : hMain.includes("drizzle") ? "drizzle" : hMain.includes("clear") ? "sun" : "cloud"
+                return { time: label, temp: Math.round(Number(h.temp)), icon: hIcon }
+              })
+              setCurrentWeather({
+                location: "Bengaluru",
+                temperature: Math.round(Number(data2?.current?.temp ?? 0)),
+                condition: data2?.current?.weather?.[0]?.description || "--",
+                humidity: Math.round(Number(data2?.current?.humidity ?? 0)),
+                windSpeed: Math.round(Number(data2?.current?.wind_speed ?? 0)),
+                icon,
+                hourlyForecast: hourly,
+              })
+            }
+          } catch {}
+        }
+      }
+    }
+    // Prefer geolocation when available
+    if (navigator?.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords
+          fetchWeather(`/api/weather?lat=${latitude}&lon=${longitude}`)
+        },
+        () => fetchWeather(`/api/weather?q=Bengaluru`),
+        { timeout: 4000 }
+      )
+    } else {
+      fetchWeather(`/api/weather?q=Bengaluru`)
+    }
     const interval = setInterval(() => {
-      setIsAnimating(true)
-      setTimeout(() => {
-        const randomWeather = weatherOptions[Math.floor(Math.random() * weatherOptions.length)]
-        setCurrentWeather(randomWeather)
-        setIsAnimating(false)
-      }, 300)
-    }, 8000)
-
+      fetchWeather(`/api/weather?q=Bengaluru`)
+    }, 10 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
 
@@ -128,7 +121,8 @@ export default function WeatherWidget() {
   }
 
   const getThemeColors = () => {
-    switch (currentWeather.icon) {
+    const iconType = currentWeather?.icon || "cloud"
+    switch (iconType) {
       case "sun":
         return {
           background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%)",
@@ -158,7 +152,8 @@ export default function WeatherWidget() {
 
   const renderBackgroundElements = () => {
     const theme = getThemeColors()
-    switch (currentWeather.icon) {
+    const iconType = currentWeather?.icon || "cloud"
+    switch (iconType) {
       case "sun":
         return (
           <div className="absolute inset-0 overflow-hidden">
@@ -235,16 +230,16 @@ export default function WeatherWidget() {
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="text-3xl font-light mb-1" style={{ color: `${theme.textColor} !important` }}>
-              {currentWeather.temperature}°
+              {currentWeather ? currentWeather.temperature : "--"}°
             </div>
             <div className="text-sm font-medium" style={{ color: `${theme.textColor} !important` }}>
-              {currentWeather.condition}
+              {currentWeather ? currentWeather.condition : ""}
             </div>
             <div className="text-xs" style={{ color: `${theme.accentColor} !important` }}>
-              {currentWeather.location}
+              {currentWeather ? currentWeather.location : ""}
             </div>
           </div>
-          <div className="transition-transform duration-300 hover:scale-110">{getWeatherIcon(currentWeather.icon)}</div>
+          <div className="transition-transform duration-300 hover:scale-110">{getWeatherIcon(currentWeather?.icon || "cloud")}</div>
         </div>
 
         <div
@@ -253,7 +248,7 @@ export default function WeatherWidget() {
             backgroundColor: `${theme.accentColor}20`,
           }}
         >
-          {currentWeather.hourlyForecast.slice(0, 3).map((hour, index) => (
+          {(currentWeather?.hourlyForecast || []).slice(0, 3).map((hour, index) => (
             <div key={index} className="flex flex-col items-center gap-1">
               {getWeatherIcon(hour.icon, "sm")}
               <div className="text-xs font-medium" style={{ color: `${theme.textColor} !important` }}>
@@ -267,10 +262,10 @@ export default function WeatherWidget() {
           className="flex items-center justify-center gap-3 text-xs"
           style={{ color: `${theme.accentColor} !important` }}
         >
-          <span>💧 {currentWeather.humidity}%</span>
+          <span>💧 {currentWeather ? currentWeather.humidity : "--"}%</span>
           <div className="flex items-center gap-1">
             <Wind className="h-3 w-3" />
-            <span>{currentWeather.windSpeed} km/h</span>
+            <span>{currentWeather ? currentWeather.windSpeed : "--"} km/h</span>
           </div>
         </div>
       </div>

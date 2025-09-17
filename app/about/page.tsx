@@ -59,8 +59,8 @@ export default function AboutPage() {
     setLanguages((prev) => (prev.includes(language) ? prev.filter((l) => l !== language) : [...prev, language]))
   }
 
-  const handleSave = () => {
-    // Save all preferences to localStorage
+  const handleSave = async () => {
+    // Save to localStorage for instant UX
     localStorage.setItem("userAge", age)
     localStorage.setItem("userTravelType", travelType)
     localStorage.setItem("userDrinks", drinks.toString())
@@ -73,7 +73,29 @@ export default function AboutPage() {
     localStorage.setItem("userDisabilities", disabilities)
     localStorage.setItem("userEmergencyContact", emergencyContact)
 
-    // Navigate back to home
+    // Persist to backend
+    const username = localStorage.getItem("username") || "guest"
+    try {
+      await fetch("/api/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          age,
+          travelType,
+          drinks,
+          budget,
+          interests,
+          travelStyle,
+          foodPreference,
+          accommodation,
+          languages,
+          disabilities,
+          emergencyContact,
+        }),
+      })
+    } catch {}
+
     router.push("/")
   }
 

@@ -20,7 +20,7 @@ export default function RegisterPage() {
   })
   const [error, setError] = useState("")
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!formData.username || !formData.email || !formData.password || !formData.durationOfStay) {
       setError("Please fill in all required fields")
       return
@@ -29,12 +29,27 @@ export default function RegisterPage() {
       setError("Passwords do not match")
       return
     }
-
-    // Simulate registration
-    localStorage.setItem("isLoggedIn", "true")
-    localStorage.setItem("username", formData.username)
-    localStorage.setItem("durationOfStay", formData.durationOfStay)
-    router.push("/")
+    try {
+      setError("")
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: formData.username, password: formData.password }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Registration failed")
+      localStorage.setItem("isLoggedIn", "true")
+      localStorage.setItem("username", formData.username)
+      localStorage.setItem("durationOfStay", formData.durationOfStay)
+      localStorage.setItem("email", formData.email)
+      localStorage.setItem("phone", formData.phone)
+      if (!localStorage.getItem("joinDate")) {
+        localStorage.setItem("joinDate", new Date().toLocaleDateString())
+      }
+      router.push("/")
+    } catch (e: any) {
+      setError(e.message)
+    }
   }
 
   return (

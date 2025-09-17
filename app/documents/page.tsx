@@ -15,11 +15,21 @@ import {
   X,
   Bot,
   AlertCircle,
+  IdCard,
+  QrCode,
+  Search,
+  HelpCircle,
+  Phone,
+  User,
+  Calendar,
+  MapPin as MapPinIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 
 export default function DocumentsPage() {
   const router = useRouter()
@@ -29,6 +39,49 @@ export default function DocumentsPage() {
   const [selectedInsurance, setSelectedInsurance] = useState<any>(null)
   const [importInsuranceText, setImportInsuranceText] = useState("")
   const [importInsuranceResult, setImportInsuranceResult] = useState<any>(null)
+  
+  // Digital ID states
+  const [isScanning, setIsScanning] = useState(false)
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [qrExpiry, setQrExpiry] = useState<number>(0)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showHelp, setShowHelp] = useState(false)
+  const [userDocuments, setUserDocuments] = useState([
+    {
+      id: 1,
+      type: "Passport",
+      number: "A1234567",
+      expiry: "2025-12-31",
+      status: "valid"
+    },
+    {
+      id: 2,
+      type: "Visa",
+      number: "V7890123",
+      expiry: "2024-06-15",
+      status: "valid"
+    },
+    {
+      id: 3,
+      type: "Driver's License",
+      number: "DL9876543",
+      expiry: "2026-03-20",
+      status: "valid"
+    }
+  ])
+
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Mock user data
+  const userData = {
+    name: "Keertan Vijay",
+    dob: "2003-10-18",
+    nationality: "Indian",
+    address: "123 Main St, Bangalore, Karnataka",
+    phone: "+91 8310377633",
+    email: "keertan.vijay@gmail.com"
+  }
 
   const documentCategories = [
     {
@@ -129,6 +182,79 @@ export default function DocumentsPage() {
     })
   }
 
+  // Digital ID functions
+  const generateQRCode = () => {
+    const qrData = {
+      userId: "user123",
+      timestamp: Date.now(),
+      name: userData.name,
+      documents: userDocuments.filter(doc => doc.status === "valid")
+    }
+    
+    setQrCode(JSON.stringify(qrData))
+    setQrExpiry(30) // 30 seconds
+    
+    // Start countdown
+    const interval = setInterval(() => {
+      setQrExpiry(prev => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          setQrCode(null)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const startScanner = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      })
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        setIsScanning(true)
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error)
+      alert('Unable to access camera. Please check permissions.')
+    }
+  }
+
+  const stopScanner = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream
+      stream.getTracks().forEach(track => track.stop())
+      setIsScanning(false)
+    }
+  }
+
+  const handleSearch = () => {
+    // Mock AI search for rules
+    alert(`Searching for rules related to: "${searchQuery}"\n\nThis would typically connect to an AI service to search through local regulations, travel rules, and compliance requirements.`)
+  }
+
+  const handleHelp = () => {
+    setShowHelp(true)
+  }
+
+  const callSeniorAuthority = () => {
+    // Mock call to senior authority
+    alert("Calling Senior Authority...\n\nThis would typically initiate a call to the local tourism authority or emergency services.")
+  }
+
+  const reportAbuse = () => {
+    // Mock abuse reporting
+    alert("Reporting abuse...\n\nThis would typically open a form to report any misuse or abuse of the Digital ID system.")
+  }
+
+  useEffect(() => {
+    return () => {
+      stopScanner()
+    }
+  }, [])
+
   if (selectedCategory === "government") {
     return (
       <div className="min-h-screen bg-background">
@@ -144,13 +270,114 @@ export default function DocumentsPage() {
           <div className="flex-1">
             <h1 className="text-xl font-semibold text-foreground text-center">Government Documents</h1>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleHelp}
+            className="text-foreground bg-card border border-border rounded-xl hover:bg-muted shadow-md"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Button>
         </div>
 
-        <div className="px-4 pb-20">
-          <div className="space-y-4">
-            {governmentDocTypes.map((docType) => (
-              <Card key={docType.id} className="placard-3d p-4 bg-card border border-border rounded-2xl shadow-md">
-                <div className="flex items-center justify-between mb-3">
+        <div className="px-4 pb-20 space-y-6">
+          {/* User Profile Card */}
+          <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <User className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">{userData.name}</h2>
+                <p className="text-sm text-muted-foreground">{userData.nationality}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">DOB:</span>
+                <span className="font-medium">{userData.dob}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPinIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Address:</span>
+                <span className="font-medium">{userData.address}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Document Scanner Section */}
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Camera className="h-6 w-6 text-primary" />
+              <h3 className="text-lg font-semibold">Import Documents</h3>
+            </div>
+            
+            {!isScanning ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground mb-4">Scan your documents for verification</p>
+                <Button onClick={startScanner} size="sm" className="w-auto px-6">
+                  <Camera className="h-4 w-4 mr-2" />
+                  Import Documents
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="relative bg-black rounded-lg overflow-hidden">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-64 object-cover"
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+                  <div className="absolute inset-0 border-2 border-primary rounded-lg pointer-events-none">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-32 border-2 border-white rounded-lg opacity-50"></div>
+                  </div>
+                </div>
+                <Button onClick={stopScanner} variant="outline" className="w-full">
+                  Stop Scanner
+                </Button>
+              </div>
+            )}
+          </Card>
+
+          {/* User Documents */}
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <FileText className="h-6 w-6 text-primary" />
+              <h3 className="text-lg font-semibold">Your Documents</h3>
+            </div>
+            
+            <div className="space-y-3">
+              {userDocuments.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">{doc.type}</p>
+                    <p className="text-sm text-muted-foreground">{doc.number}</p>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={doc.status === "valid" ? "default" : "destructive"}>
+                      {doc.status}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">Exp: {doc.expiry}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+
+          {/* Traditional Document Upload */}
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Upload className="h-6 w-6 text-primary" />
+              <h3 className="text-lg font-semibold">Upload Documents</h3>
+            </div>
+            
+            <div className="space-y-4">
+              {governmentDocTypes.map((docType) => (
+                <div key={docType.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">{docType.icon}</div>
                     <div>
@@ -174,41 +401,49 @@ export default function DocumentsPage() {
                         <Upload className="h-4 w-4 mr-1" />
                         Upload
                       </Button>
-                      <Button
-                        onClick={() => handleDocumentUpload(docType.id)}
-                        size="sm"
-                        variant="outline"
-                        className="border-border hover:bg-muted rounded-xl"
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
                     </div>
                   )}
                 </div>
+              ))}
+            </div>
+          </Card>
 
-                {uploadedDocuments.find((doc) => doc.type === docType.id) && (
-                  <div className="bg-muted p-3 rounded-xl">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {uploadedDocuments.find((doc) => doc.type === docType.id)?.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Uploaded: {uploadedDocuments.find((doc) => doc.type === docType.id)?.uploadDate}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 text-green-600">
-                        <Shield className="h-4 w-4" />
-                        <span className="text-xs">Verified</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            ))}
-          </div>
+          {/* Help Section */}
+          {showHelp && (
+            <Card className="p-6 border-orange-200 bg-orange-50">
+              <div className="flex items-center gap-3 mb-4">
+                <Shield className="h-6 w-6 text-orange-600" />
+                <h3 className="text-lg font-semibold text-orange-800">Help & Support</h3>
+              </div>
+              
+              <div className="space-y-3">
+                <Button 
+                  onClick={callSeniorAuthority} 
+                  className="w-full bg-orange-600 hover:bg-orange-700"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Call Senior Authority
+                </Button>
+                <Button 
+                  onClick={reportAbuse} 
+                  variant="outline" 
+                  className="w-full border-orange-300 text-orange-700 hover:bg-orange-100"
+                >
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Report Abuse
+                </Button>
+                <Button 
+                  onClick={() => setShowHelp(false)} 
+                  variant="ghost" 
+                  className="w-full"
+                >
+                  Close
+                </Button>
+              </div>
+            </Card>
+          )}
 
-          <Card className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-border rounded-2xl">
+          <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-border rounded-2xl">
             <div className="text-center">
               <Shield className="h-8 w-8 mx-auto mb-2 text-primary" />
               <h3 className="font-semibold text-foreground mb-1">Secure Document Storage</h3>
@@ -538,6 +773,58 @@ export default function DocumentsPage() {
             </Card>
           ))}
         </div>
+
+        {/* QR Code Generator */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <QrCode className="h-6 w-6 text-primary" />
+            <h3 className="text-lg font-semibold">Generate QR Code</h3>
+          </div>
+          
+          {qrCode ? (
+            <div className="text-center space-y-4">
+              <div className="w-48 h-48 mx-auto bg-white border-2 border-border rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <QrCode className="h-24 w-24 text-primary mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">QR Code Generated</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-orange-600">Expires in {qrExpiry} seconds</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground mb-4">Generate a secure QR code for verification</p>
+              <Button onClick={generateQRCode} className="w-full">
+                <QrCode className="h-4 w-4 mr-2" />
+                Generate QR Code
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        {/* AI Search for Rules */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Search className="h-6 w-6 text-primary" />
+            <h3 className="text-lg font-semibold">AI Search for Rules</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <Input
+              placeholder="Search for travel rules, regulations, or requirements..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+            <Button onClick={handleSearch} className="w-full" disabled={!searchQuery.trim()}>
+              <Search className="h-4 w-4 mr-2" />
+              Search Rules
+            </Button>
+          </div>
+        </Card>
 
         {/* Insurance Recommendations */}
         <div>

@@ -11,20 +11,25 @@ export default function ProfilePage() {
   const [username, setUsername] = useState("")
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
-    name: "Keertan",
-    email: "keertan@example.com",
-    phone: "+91 9876543210",
-    location: "Bangalore, Karnataka",
-    joinDate: "January 2024",
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    joinDate: "",
   })
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("username")
     if (!storedUsername) {
       router.push("/login")
-    } else {
-      setUsername(storedUsername)
+      return
     }
+    setUsername(storedUsername)
+    const email = localStorage.getItem("email") || ""
+    const phone = localStorage.getItem("phone") || ""
+    const location = localStorage.getItem("userAddress") || ""
+    const joinDate = localStorage.getItem("joinDate") || ""
+    setProfileData({ name: storedUsername, email, phone, location, joinDate })
   }, [router])
 
   const travelHistory = [
@@ -104,50 +109,39 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center gap-3">
               <MapPin className="h-5 w-5 text-red-500" />
-              <span className="text-gray-700">{profileData.location}</span>
+              {isEditing ? (
+                <Input
+                  value={profileData.location}
+                  onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                  className="flex-1"
+                />
+              ) : (
+                <span className="text-gray-700">{profileData.location || "Add your location"}</span>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <Calendar className="h-5 w-5 text-purple-500" />
-              <span className="text-gray-700">Member since {profileData.joinDate}</span>
+              <span className="text-gray-700">Member since {profileData.joinDate || "—"}</span>
             </div>
           </div>
         </Card>
 
-        {/* Travel History */}
+        {/* Travel History placeholder if none */}
         <Card className="p-6 rounded-3xl border-0 shadow-lg">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Travel History</h3>
-          <div className="space-y-3">
-            {travelHistory.map((trip, index) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
-                <div>
-                  <p className="font-medium text-gray-800">{trip.place}</p>
-                  <p className="text-sm text-gray-600">{trip.date}</p>
-                </div>
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className={`text-lg ${i < trip.rating ? "text-yellow-400" : "text-gray-300"}`}>
-                      ★
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="text-sm text-gray-600">No trips yet. Start exploring tourist spots!</div>
         </Card>
 
-        {/* Emergency Contacts */}
+        {/* Emergency Contacts from About prefs */}
         <Card className="p-6 rounded-3xl border-0 shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Emergency Contacts</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Emergency Contact</h3>
           <div className="space-y-3">
-            {emergencyContacts.map((contact, index) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-red-50 rounded-2xl">
-                <div>
-                  <p className="font-medium text-gray-800">{contact.name}</p>
-                  <p className="text-sm text-gray-600">{contact.relation}</p>
-                </div>
-                <p className="text-sm font-medium text-red-600">{contact.phone}</p>
-              </div>
-            ))}
+            <div className="flex items-center gap-3">
+              <Phone className="h-5 w-5 text-red-600" />
+              <span className="text-sm text-gray-700">
+                {localStorage.getItem("userEmergencyContact") || "Add emergency contact in About page"}
+              </span>
+            </div>
           </div>
         </Card>
       </div>

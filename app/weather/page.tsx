@@ -20,37 +20,85 @@ import BottomNavigation from "@/components/bottom-navigation"
 export default function WeatherPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [weather, setWeather] = useState<any>(null)
+  const [cityWeathers, setCityWeathers] = useState<Array<{ name: string; temp: number; icon: string }>>([])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const fetchWeather = async () => {
+      const res = await fetch(`/api/weather?q=Bengaluru&t=${Date.now()}`, { cache: "no-store" })
+      const data = await res.json()
+      setWeather(data)
       setIsLoading(false)
-    }, 500)
-    return () => clearTimeout(timer)
+    }
+    fetchWeather()
+    const fetchCities = async () => {
+      const cities = [
+        "Bengaluru",
+        "Mysuru",
+        "Mangaluru",
+        "Hubballi",
+        "Belagavi",
+        "Shivamogga",
+        "Davanagere",
+        "Ballari",
+        "Vijayapura",
+        "Udupi",
+      ]
+      try {
+        const results = await Promise.all(
+          cities.map(async (c) => {
+            const r = await fetch(`/api/weather?q=${encodeURIComponent(c)}&t=${Date.now()}`, { cache: "no-store" })
+            const d = await r.json()
+            const main = d?.current?.weather?.[0]?.main?.toLowerCase() || "cloud"
+            const icon = main.includes("rain") ? "rain" : main.includes("clear") ? "sun" : "cloud-sun"
+            return { name: c, temp: Math.round(d?.current?.temp ?? 0), icon }
+          })
+        )
+        setCityWeathers(results)
+      } catch (e) {
+        // ignore
+      }
+    }
+    fetchCities()
   }, [])
 
-  const currentWeather = {
-    location: "Bengaluru",
-    temperature: 20,
-    condition: "Cloudy",
-    high: 27,
-    low: 20,
-    feelsLike: 20,
-  }
+  const currentWeather = weather
+    ? {
+        location: "Bengaluru",
+        temperature: Math.round(Number(weather?.current?.temp ?? 0)),
+        condition: weather?.current?.weather?.[0]?.description || "--",
+        high: Math.round(Number(weather?.daily?.[0]?.temp?.max ?? 0)),
+        low: Math.round(Number(weather?.daily?.[0]?.temp?.min ?? 0)),
+        feelsLike: Math.round(Number(weather?.current?.feels_like ?? 0)),
+      }
+    : {
+        location: "Bengaluru",
+        temperature: 0,
+        condition: "--",
+        high: 0,
+        low: 0,
+        feelsLike: 0,
+      }
 
-  const hourlyData = [
-    { time: "Now", temp: 20, icon: "cloud-sun" },
-    { time: "09:00", temp: 22, icon: "cloud-sun" },
-    { time: "11:00", temp: 24, icon: "cloud-sun" },
-    { time: "13:00", temp: 26, icon: "cloud-sun" },
-    { time: "15:00", temp: 27, icon: "cloud-sun" },
-  ]
+  const hourlyData = weather
+    ? (weather.hourly || []).slice(0, 5).map((h: any, i: number) => ({
+        time: i === 0 ? "Now" : new Date(h.dt * 1000).toLocaleTimeString([], { hour: "2-digit" }),
+        temp: Math.round(Number(h.temp)),
+        icon: (h?.weather?.[0]?.main?.toLowerCase().includes("rain") ? "rain" : "cloud-sun"),
+      }))
+    : []
 
-  const dailyForecast = [
-    { day: "Yesterday", date: "09/11", high: 29, low: 20, icon: "cloud-sun" },
-    { day: "Today", date: "09/12", high: 27, low: 20, icon: "cloud-sun" },
-    { day: "Tomorrow", date: "09/13", high: 28, low: 19, icon: "rain", precipitation: 55 },
-    { day: "Sun", date: "09/14", high: 29, low: 20, icon: "cloud-sun" },
-  ]
+  const dayName = (d: number) => new Date(d * 1000).toLocaleDateString(undefined, { weekday: "short" })
+  const dailyForecast = weather
+    ? (weather.daily || []).slice(0, 4).map((d: any, idx: number) => ({
+        day: idx === 0 ? "Today" : dayName(d.dt),
+        date: new Date(d.dt * 1000).toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" }),
+        high: Math.round(Number(d.temp.max)),
+        low: Math.round(Number(d.temp.min)),
+        icon: (d?.weather?.[0]?.main?.toLowerCase().includes("rain") ? "rain" : "cloud-sun"),
+        precipitation: Math.round(Number(d.pop || 0) * 100),
+      }))
+    : []
 
   const getWeatherIcon = (iconType: string) => {
     switch (iconType) {
@@ -123,7 +171,12 @@ export default function WeatherPage() {
               </linearGradient>
             </defs>
             <path
-              d="M 20 100 Q 80 80 140 60 Q 200 40 260 20"
+              d={(() => {
+                if (!hourlyData.length) return "M 20 100 L 260 100"
+                const xs = [20, 80, 140, 200, 260]
+                const ys = hourlyData.map((h: any) => 120 - (h.temp - (currentWeather.low || 0)) * (100 / Math.max(1, (currentWeather.high - currentWeather.low))))
+                return `M ${xs[0]} ${ys[0]} Q ${xs[1]} ${ys[1]} ${xs[2]} ${ys[2]} Q ${xs[3]} ${ys[3]} ${xs[4]} ${ys[4]}`
+              })()}
               stroke="url(#tempGradient)"
               strokeWidth="4"
               fill="none"
@@ -131,10 +184,10 @@ export default function WeatherPage() {
             />
             {/* Current temperature point */}
             <circle cx="20" cy="100" r="6" fill="#10b981" />
-            <text x="20" y="90" textAnchor="middle" className="text-xs fill-white font-medium">20</text>
+            <text x="20" y="90" textAnchor="middle" className="text-xs fill-white font-medium">{currentWeather.low}</text>
             {/* Peak temperature point */}
             <circle cx="260" cy="20" r="6" fill="#f97316" />
-            <text x="260" y="10" textAnchor="middle" className="text-xs fill-white font-medium">27</text>
+            <text x="260" y="10" textAnchor="middle" className="text-xs fill-white font-medium">{currentWeather.high}</text>
           </svg>
         </div>
 
@@ -175,6 +228,30 @@ export default function WeatherPage() {
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Karnataka Major Cities */}
+      <div className="px-6 pb-6">
+        <h2 className="text-white/90 font-semibold mb-3">Karnataka - Major Cities</h2>
+        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+          {cityWeathers.map((c, idx) => (
+            <Card key={idx} className="min-w-[120px] px-3 py-3 bg-white/10 border-white/20 text-white rounded-2xl">
+              <div className="text-sm font-medium mb-1">{c.name}</div>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-light">{c.temp}°</div>
+                <div>
+                  {c.icon === "sun" ? (
+                    <Sun className="h-5 w-5 text-yellow-300" />
+                  ) : c.icon === "rain" ? (
+                    <CloudRain className="h-5 w-5 text-blue-200" />
+                  ) : (
+                    <CloudSun className="h-5 w-5 text-blue-100" />
+                  )}
+                </div>
+              </div>
+            </Card>
           ))}
         </div>
       </div>

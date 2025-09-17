@@ -146,6 +146,7 @@ export default function TouristSpotsPage() {
     trending: 8,
     activeNow: 342,
   })
+  const [preferences, setPreferences] = useState<any>(null)
 
   useEffect(() => {
     const statsInterval = setInterval(() => {
@@ -157,6 +158,18 @@ export default function TouristSpotsPage() {
     }, 3000)
 
     return () => clearInterval(statsInterval)
+  }, [])
+
+  useEffect(() => {
+    const loadPrefs = async () => {
+      const username = localStorage.getItem("username") || "guest"
+      try {
+        const res = await fetch(`/api/preferences?username=${encodeURIComponent(username)}`, { cache: "no-store" })
+        const data = await res.json()
+        setPreferences(data?.preferences || null)
+      } catch {}
+    }
+    loadPrefs()
   }, [])
 
   const categories = [
@@ -318,7 +331,7 @@ export default function TouristSpotsPage() {
     },
   ]
 
-  const forYou = [
+  const baseForYou = [
     {
       name: "Nandi Hills",
       image: "/dynamic-foryou-nandi.jpg",
@@ -353,6 +366,23 @@ export default function TouristSpotsPage() {
       safetyColor: "text-green-500",
     },
   ]
+
+  // Simple preference-based filtering/reordering
+  const forYou = (() => {
+    if (!preferences) return baseForYou
+    const interests: string[] = preferences?.interests || []
+    const travelType = preferences?.travelType
+    let scored = baseForYou.map((spot) => ({ spot, score: 0 }))
+    scored.forEach((s) => {
+      if (interests.includes("heritage") && /palace|temple|ruins|heritage/i.test(s.spot.name + s.spot.description)) s.score += 2
+      if (interests.includes("adventure") && /hills|trek|adventure/i.test(s.spot.name + s.spot.description)) s.score += 2
+      if (interests.includes("food") && /food|cafe|restaurant/i.test(s.spot.description)) s.score += 1
+      if (travelType === "Family" && /park|garden|temple|palace/i.test(s.spot.name + s.spot.description)) s.score += 1
+      if (travelType === "Solo" && /trek|hills|beach/i.test(s.spot.name + s.spot.description)) s.score += 1
+    })
+    scored.sort((a, b) => b.score - a.score)
+    return scored.map((s) => s.spot)
+  })()
 
   const SpotCard = ({ spot }: { spot: any }) => (
     <Card

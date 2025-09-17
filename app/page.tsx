@@ -322,6 +322,8 @@ export default function HomePage() {
           ))}
         </div>
 
+        {/* Admin quick access removed per request */}
+
         <div className="mb-8 px-4">
           <Button
             onClick={() => router.push("/itinerary")}
